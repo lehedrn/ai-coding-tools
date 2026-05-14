@@ -1,14 +1,15 @@
 ---
 name: init-claude-md
-description: 初始化项目的 CLAUDE.md 和项目信息文件。CLAUDE.md 是 AI 的行为契约，定义 AI 在本项目中的行为规范；项目信息文件记录项目事实。当用户需要为新项目创建 CLAUDE.md、初始化 AI 协作规范、或在项目中第一次使用 Claude Code 时使用此技能。即使用户只是说"帮我设置一下项目"、"项目初始化"、"配置 AI 行为规范"，也应触发此技能。
-disable-model-invocation: true
+description: 初始化项目的 CLAUDE.md 和项目信息文件。CLAUDE.md 是 AI 的行为契约，定义 AI 在本项目中的行为规范；项目信息文件记录项目事实。当用户需要为新项目创建 CLAUDE.md、初始化 AI 协作规范、或在项目中第一次使用 Claude Code 时使用此技能。即使用户只是说"帮我设置一下项目"、"项目初始化"、"配置 AI 行为规范"、"让 AI 更懂我的项目"、"帮我把 AI 配置好"、"设置 CLAUDE.md"、"配置项目上下文"，也应触发此技能。
 user-invocable: true
-allowed-tools: Read Write Edit Bash AskUserQuestion
+allowed-tools: Read Write Edit Bash Glob Grep AskUserQuestion
 ---
 
 # /init-claude-md
 
 你是项目配置顾问，任务是帮当前项目初始化 CLAUDE.md 和项目信息文件。
+
+**适用范围**：软件开发项目（前后端、全栈、CLI 工具、库/SDK 等）。纯文档仓库、数据科学笔记本项目可使用但部分章节（如代码风格）可能不适用，按需跳过。
 
 ## 核心原则
 
@@ -60,6 +61,7 @@ CLAUDE.md 是 **AI 的行为契约**，不是项目文档。只写可操作的�
 
 - **没有**：继续第 2 步
 - **有**：用 AskUserQuestion 询问用户选择：
+  - "增量修订"：展示旧 CLAUDE.md 内容，用户指出需要修改的部分，仅修订这些章节（保留其余不动）
   - "覆盖"：删除旧文件，从头开始
   - "取消"：终止整个流程
 
@@ -80,6 +82,8 @@ CLAUDE.md 是 **AI 的行为契约**，不是项目文档。只写可操作的�
 | Node.js | `package.json` | scripts、dependencies |
 | Python | `requirements.txt` / `pyproject.toml` | 依赖、工具链 |
 | Go | `go.mod` | 模块路径、依赖 |
+| Rust | `Cargo.toml` | 依赖、features、build profiles |
+| C#/.NET | `.csproj` / `Directory.Build.props` | 目标框架、依赖、build 配置 |
 | 通用 | `Makefile` / `Dockerfile` / `.github/` | 构建/部署/CI 命令 |
 
 **扫描内容**：
@@ -100,6 +104,8 @@ CLAUDE.md 是 **AI 的行为契约**，不是项目文档。只写可操作的�
 3. 展示草稿请用户确认
 4. 确认后进入下一章
 
+**减少轮次**：如果多个章节的问题较少且相互独立，可以在一次 AskUserQuestion 中合并提问（最多 4 个问题），避免用户反复回答。但每章的草稿仍需分别展示和确认。
+
 按 `required_chapters` + `optional_chapters` 参数决定章节列表和顺序。必选章节不可跳过，可选章节用户可跳过。
 
 默认章节顺序：
@@ -118,18 +124,15 @@ CLAUDE.md 是 **AI 的行为契约**，不是项目文档。只写可操作的�
 
 以下配置直接写入 `.claude/settings.local.json`，不写入 CLAUDE.md。
 
-#### 4.1 record-history hook
+#### 4.1 Hook 安装
 
-根据 `install_record_history` 参数：
-- `always`：直接安装，不询问
-- `never`：跳过
-- `ask`（默认）：检查 `.claude/settings.local.json` 的 `hooks.Stop` 是否已配置 `record-history.js`，已安装则跳过，未安装则询问用户
+扫描本 Skill 的 `scripts/` 目录下的所有 hook 脚本，逐个询问用户是否安装。对于 record-history hook，根据 `install_record_history` 参数决定是否跳过询问（`always` 直接安装，`never` 跳过，`ask` 询问）。
 
-安装步骤：
-1. 将本 Skill 的 `scripts/record-history.js` 复制到项目的 `.claude/hooks/record-history.js`
-2. 执行 `chmod +x .claude/hooks/record-history.js`
+每个 hook 的安装流程：
+1. 将脚本从 `scripts/` 复制到项目的 `.claude/hooks/`
+2. 执行 `chmod +x` 确保可执行
 3. 在 `.claude/settings.local.json` 中添加 hook 配置（参考 `references/output-template.md`）
-4. 确保项目的 `docs/history/` 目录存在
+4. 确保 hook 所需的数据目录存在
 
 #### 4.2 询问其他配置
 
@@ -153,7 +156,15 @@ CLAUDE.md 是 **AI 的行为契约**，不是项目文档。只写可操作的�
 读取本文件后，必须立即读取 {project_info_path 实际路径}，获取项目技术栈、目录结构、常用命令等信息。
 ```
 
-**输出前自检**：逐条检查写入的规则是否满足质量三标准（可操作/可验证/不过时）。不满足的规则要么改写使其满足，要么移到项目信息文件。
+**输出前自检**：逐条检查写入的规则，对每条规则标注以下 5 项是否通过：
+
+| 检查项 | 标准 | 不通过则处理 |
+|--------|------|-------------|
+| 可操作 | AI 读完知道具体怎么做 | 改写或移到项目信息文件 |
+| 可验证 | 能判断 AI 是否违反 | 改写或移到项目信息文件 |
+| 不过时 | 不含版本号等易变信息 | 移到项目信息文件 |
+| 非显而易见 | 不是类名/函数名已说明的内容 | 删除 |
+| 项目特定 | 非通用最佳实践 | 删除 |
 
 **输出后请用户做最终审核**，确认后写入 `CLAUDE.md`。
 
@@ -175,7 +186,7 @@ CLAUDE.md 是 **AI 的行为契约**，不是项目文档。只写可操作的�
 |------|------|------|
 | CLAUDE.md 定位 | 行为契约，不是项目文档 | 避免膨胀，信息职责清晰 |
 | 项目事实放哪 | 独立文件，默认 `docs/{project_name}/info.md` | 更新频率不同，各自独立维护 |
-| 已有 CLAUDE.md 时 | 询问用户（覆盖/取消） | 首版去掉增量，避免合并冲突 |
+| 已有 CLAUDE.md 时 | 询问用户（增量修订/覆盖/取消） | 增量修订避免丢失有价值内容，覆盖作为兜底 |
 | 系统配置 | 不写入 CLAUDE.md，直接操作 settings | 不属于行为契约 |
 | record-history hook | 参数化（默认询问是否安装） | 降低配置门槛，同时允许跳过 |
 | 项目信息引用 | "上下文加载"章节索引完整路径 | CLAUDE.md 中明确指向，AI 和用户都能找到 |

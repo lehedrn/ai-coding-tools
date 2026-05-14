@@ -6,7 +6,10 @@
       "Bash(mkdir *)",
       "Bash(chmod *)",
       "Bash(gh api *)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(cp /home/workspace/coderlee/ai-coding-tools/skills/init-claude-md/SKILL.md /home/workspace/coderlee/ai-coding-tools/.claude/skills/init-claude-md/SKILL.md)",
+      "Bash(cp /home/workspace/coderlee/ai-coding-tools/skills/init-claude-md/references/chapter-guide.md /home/workspace/coderlee/ai-coding-tools/.claude/skills/init-claude-md/references/chapter-guide.md)",
+      "Bash(cp /home/workspace/coderlee/ai-coding-tools/skills/init-claude-md/evals/evals.json /home/workspace/coderlee/ai-coding-tools/.claude/skills/init-claude-md/evals/evals.json)"
     ]
   },
   "hooks": {
