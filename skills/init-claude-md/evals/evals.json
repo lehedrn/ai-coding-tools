@@ -1,0 +1,23 @@
+{
+  "skill_name": "init-claude-md",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我新建了一个 Spring Boot 项目，想配置一下 CLAUDE.md 让 AI 知道怎么跟我协作",
+      "expected_output": "Skill 应触发，扫描项目识别为 Java/Maven 项目，生成项目信息文件，逐章交互讨论行为规范，询问是否安装 record-history hook，最终输出 CLAUDE.md",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "这个项目已经有 CLAUDE.md 了，但我觉得写得不好想重新来",
+      "expected_output": "Skill 应检测到已有 CLAUDE.md，询问用户选择覆盖还是取消，用户选覆盖后从头执行流程",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "帮我初始化项目配置，我这是一个 Vue3 + Vite 的前端项目，代码注释用中文，AI 不要擅自操作先跟我讨论",
+      "expected_output": "Skill 应触发，在交互讨论中根据用户提供的偏好（中文注释、先讨论后执行）直接用于代码风格和协作偏好章节，减少重复提问",
+      "files": []
+    }
+  ]
+}
